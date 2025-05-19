@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Convidar Amigos - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Convidar Amigos</h1>
+  <p>Compartilhe este link para convidar seus amigos e ganhar bônus!</p>
+  <input type="text" id="inviteLink" readonly style="width:100%;padding:8px;" />
+  <p><a href="home.html">Voltar</a></p>
+
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+    const inviteInput = document.getElementById('inviteLink');
+
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      // Link de convite com ID do usuário para rastrear indicações
+      inviteInput.value = `${window.location.origin}/registro.html?ref=${user.uid}`;
+    });
+  </script>
+</body>
+</html>

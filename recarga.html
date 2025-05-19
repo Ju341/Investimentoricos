@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recarga - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="perfil.html">Perfil</a>
+    <a href="recarga.html">Recarga</a>
+    <a href="retirada.html">Retirada</a>
+    <a href="historico.html">Histórico</a>
+    <a href="convidar.html">Convidar Amigos</a>
+    <a href="#" id="logoutBtn">Sair</a>
+  </nav>
+
+  <div class="container">
+    <h2>Recarga</h2>
+    <p>Para recarregar, faça a transferência para o número:</p>
+    <p><strong>857681065</strong> (Nome: Benedito Gomes Mabensa)</p>
+    <p>Transferência mínima: 300 MT</p>
+
+    <form id="formRecarga">
+      <label>Valor:</label>
+      <input type="number" id="valor" required min="300" />
+      <label>Comprovativo (texto ou código da transação):</label>
+      <input type="text" id="comprovativo" required />
+      <button type="submit">Enviar Recarga</button>
+    </form>
+
+    <p id="mensagem"></p>
+  </div>
+
+  <script>
+    const form = document.getElementById('formRecarga');
+    const mensagem = document.getElementById('mensagem');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    logoutBtn.addEventListener('click', () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'login.html';
+      });
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) return location.href = 'login.html';
+
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+
+        const valor = parseInt(document.getElementById('valor').value);
+        const comprovativo = document.getElementById('comprovativo').value;
+
+        if (valor < 300) {
+          mensagem.textContent = "Valor mínimo de recarga é 300 MT";
+          return;
+        }
+
+        const recargaId = Date.now().toString();
+
+        firebase.database().ref('recargas/' + recargaId).set({
+          userId: user.uid,
+          valor: valor,
+          comprovativo: comprovativo,
+          status: 'pendente',
+          data: new Date().toISOString()
+        }).then(() => {
+          mensagem.textContent = "Recarga enviada com sucesso! Aguarde a confirmação.";
+          form.reset();
+        }).catch(error => {
+          mensagem.textContent = "Erro ao enviar recarga.";
+          console.error(error);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Retirada - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="perfil.html">Perfil</a>
+    <a href="recarga.html">Recarga</a>
+    <a href="retirada.html">Retirada</a>
+    <a href="historico.html">Histórico</a>
+    <a href="convidar.html">Convidar Amigos</a>
+    <a href="#" id="logoutBtn">Sair</a>
+  </nav>
+
+  <div class="container">
+    <h2>Solicitar Retirada</h2>
+    <form id="formRetirada">
+      <label>Valor (mínimo 300 MT):</label>
+      <input type="number" id="valor" required min="300" />
+      <label>Número para receber:</label>
+      <input type="text" id="numero" required />
+      <button type="submit">Enviar Solicitação</button>
+    </form>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('formRetirada');
+    const msg = document.getElementById('msg');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    logoutBtn.addEventListener('click', () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'login.html';
+      });
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) return location.href = 'login.html';
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        const valor = parseInt(document.getElementById('valor').value);
+        const numero = document.getElementById('numero').value;
+
+        if (valor < 300) {
+          msg.innerText = 'Valor mínimo para retirada é 300 MT';
+          return;
+        }
+
+        firebase.database().ref('users/' + user.uid).once('value').then(snapshot => {
+          const dados = snapshot.val() || {};
+          if ((dados.saldo || 0) < valor) {
+            msg.innerText = 'Saldo insuficiente!';
+            return;
+          }
+
+          const retiradaId = Date.now().toString();
+          firebase.database().ref('retiradas/' + retiradaId).set({
+            userId: user.uid,
+            valor,
+            numero,
+            status: 'pendente',
+            data: new Date().toISOString()
+          });
+
+          msg.innerText = 'Solicitação enviada! Aguarde aprovação.';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

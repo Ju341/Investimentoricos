@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="perfil.html">Perfil</a>
+    <a href="recarga.html">Recarga</a>
+    <a href="retirada.html">Retirada</a>
+    <a href="historico.html">Histórico</a>
+    <a href="convidar.html">Convidar Amigos</a>
+    <a href="#" id="logoutBtn">Sair</a>
+  </nav>
+
+  <div class="container">
+    <h2>Planos VIP Disponíveis</h2>
+    <div id="vip-list"></div>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const vipList = document.getElementById('vip-list');
+    const msgDiv = document.getElementById('msg');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    logoutBtn.addEventListener('click', () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'login.html';
+      });
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      carregarVIPs();
+    });
+
+    function carregarVIPs() {
+      vipList.innerHTML = 'Carregando...';
+
+      firebase.database().ref('vips').once('value')
+      .then(snapshot => {
+        vipList.innerHTML = '';
+        if (!snapshot.exists()) {
+          vipList.innerHTML = '<p>Nenhum plano VIP disponível.</p>';
+          return;
+        }
+
+        snapshot.forEach(childSnapshot => {
+          const vip = childSnapshot.val();
+          const vipId = childSnapshot.key;
+
+          const card = document.createElement('div');
+          card.className = 'vip-card';
+
+          card.innerHTML = `
+            <img src="${vip.imagem}" alt="${vip.nome}" />
+            <h3>${vip.nome}</h3>
+            <p>Preço: ${vip.preco} MT</p>
+            <p>Validade: ${vip.dias} dias</p>
+            <p>Retorno: ${vip.retorno}%</p>
+            <button data-id="${vipId}">Comprar</button>
+          `;
+
+          card.querySelector('button').addEventListener('click', () => comprarVIP(vipId, vip));
+
+          vipList.appendChild(card);
+        });
+      })
+      .catch(err => {
+        vipList.innerHTML = '<p>Erro ao carregar planos VIP.</p>';
+        console.error(err);
+      });
+    }
+
+    function comprarVIP(vipId, vip) {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      if (confirm(`Deseja comprar o plano ${vip.nome} por ${vip.preco} MT?`)) {
+        // Atualiza VIP comprado no perfil do usuário
+        firebase.database().ref('users/' + user.uid).once('value').then(userSnap => {
+          const userData = userSnap.val() || {};
+          if ((userData.saldo || 0) < vip.preco) {
+            alert('Saldo insuficiente para comprar este VIP. Faça uma recarga.');
+            return;
+          }
+
+          // Debita saldo
+          const novoSaldo = userData.saldo - vip.preco;
+
+          firebase.database().ref('users/' + user.uid).update({
+            saldo: novoSaldo,
+            vipComprado: {
+              id: vipId,
+              nome: vip.nome,
+              compradoEm: new Date().toISOString(),
+              validadeDias: vip.dias,
+              retorno: vip.retorno
+            }
+          }).then(() => {
+            alert('Compra realizada com sucesso!');
+            carregarVIPs();
+          });
+        });
+      }
+    }
+  </script>
+</body>
+</html>

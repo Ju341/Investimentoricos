@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registrar - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Registrar Conta</h2>
+    <div id="msg"></div>
+    <form id="formRegistro">
+      <input type="text" id="nome" placeholder="Nome completo" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="tel" id="telefone" placeholder="Número de telefone" pattern="[0-9]{9,15}" title="Digite um número válido" required />
+      <input type="password" id="senha" placeholder="Senha (mínimo 6 caracteres)" minlength="6" required />
+      <input type="password" id="confSenha" placeholder="Confirmar Senha" minlength="6" required />
+      <button type="submit">Registrar</button>
+    </form>
+    <p style="text-align:center; margin-top: 10px;">Já tem conta? <a href="login.html">Entrar</a></p>
+  </div>
+
+  <script>
+    const formRegistro = document.getElementById('formRegistro');
+    const msgDiv = document.getElementById('msg');
+
+    formRegistro.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const telefone = document.getElementById('telefone').value.trim();
+      const senha = document.getElementById('senha').value;
+      const confSenha = document.getElementById('confSenha').value;
+
+      msgDiv.innerHTML = '';
+
+      if (senha !== confSenha) {
+        msgDiv.innerHTML = '<p class="error-msg">As senhas não coincidem.</p>';
+        return;
+      }
+
+      if (senha.length < 6) {
+        msgDiv.innerHTML = '<p class="error-msg">Senha deve ter pelo menos 6 caracteres.</p>';
+        return;
+      }
+
+      firebase.auth().createUserWithEmailAndPassword(email, senha)
+      .then(userCredential => {
+        const user = userCredential.user;
+        firebase.database().ref('users/' + user.uid).set({
+          nome: nome,
+          email: email,
+          telefone: telefone,
+          saldo: 0,
+          vipComprado: null,
+          criadoEm: new Date().toISOString()
+        });
+
+        msgDiv.innerHTML = '<p class="success-msg">Conta criada com sucesso! Redirecionando...</p>';
+
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+
+      })
+      .catch(error => {
+        msgDiv.innerHTML = '<p class="error-msg">' + error.message + '</p>';
+      });
+    });
+  </script>
+</body>
+</html>

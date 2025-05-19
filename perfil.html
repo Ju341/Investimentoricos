@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perfil - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="perfil.html">Perfil</a>
+    <a href="recarga.html">Recarga</a>
+    <a href="retirada.html">Retirada</a>
+    <a href="historico.html">Histórico</a>
+    <a href="convidar.html">Convidar Amigos</a>
+    <a href="#" id="logoutBtn">Sair</a>
+  </nav>
+
+  <div class="container">
+    <h2>Perfil</h2>
+    <div id="perfil-info"></div>
+  </div>
+
+  <script>
+    const perfilInfo = document.getElementById('perfil-info');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    logoutBtn.addEventListener('click', () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'login.html';
+      });
+    });
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      firebase.database().ref('users/' + user.uid).once('value').then(snapshot => {
+        const userData = snapshot.val();
+        if (!userData) {
+          perfilInfo.innerHTML = '<p>Erro ao carregar dados do usuário.</p>';
+          return;
+        }
+
+        let vipInfo = '<p>Nenhum plano VIP comprado.</p>';
+        if (userData.vipComprado) {
+          const comprado = userData.vipComprado;
+          vipInfo = `
+            <p><strong>VIP Comprado:</strong> ${comprado.nome}</p>
+            <p><strong>Validade:</strong> ${comprado.validadeDias} dias</p>
+            <p><strong>Retorno:</strong> ${comprado.retorno}%</p>
+            <p><strong>Comprado em:</strong> ${new Date(comprado.compradoEm).toLocaleDateString()}</p>
+          `;
+        }
+
+        perfilInfo.innerHTML = `
+          <p><strong>Nome:</strong> ${userData.nome}</p>
+          <p><strong>Email:</strong> ${userData.email}</p>
+          <p><strong>Telefone:</strong> ${userData.telefone}</p>
+          <p><strong>Saldo:</strong> ${userData.saldo} MT</p>
+          ${vipInfo}
+        `;
+      });
+    });
+  </script>
+</body>
+</html>

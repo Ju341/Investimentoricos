@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cadastro - Plataforma Investimentos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Cadastro</h1>
+  <form id="registerForm" novalidate>
+    <label>Nome completo:
+      <input type="text" id="name" required />
+      <div class="error" id="nameError"></div>
+    </label>
+    <label>Email:
+      <input type="email" id="email" required />
+      <div class="error" id="emailError"></div>
+    </label>
+    <label>Telefone (número):
+      <input type="tel" id="phone" required pattern="[0-9]{9,15}" />
+      <div class="error" id="phoneError"></div>
+    </label>
+    <label>Senha:
+      <input type="password" id="password" required minlength="6" />
+      <div class="error" id="passwordError"></div>
+    </label>
+    <button type="submit">Registrar</button>
+  </form>
+  <p>Já tem conta? <a href="login.html">Entrar</a></p>
+
+  <script type="module">
+    import { auth, database } from "./firebase-config.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    const form = document.getElementById('registerForm');
+
+    function showError(id, msg) {
+      document.getElementById(id).textContent = msg;
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      // limpa erros
+      showError('nameError', '');
+      showError('emailError', '');
+      showError('phoneError', '');
+      showError('passwordError', '');
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+
+      // validações simples
+      let valid = true;
+      if (name.length < 3) {
+        showError('nameError', 'Nome muito curto');
+        valid = false;
+      }
+      if (!email.match(/^\S+@\S+\.\S+$/)) {
+        showError('emailError', 'Email inválido');
+        valid = false;
+      }
+      if (!phone.match(/^[0-9]{9,15}$/)) {
+        showError('phoneError', 'Telefone inválido (só números, 9-15 dígitos)');
+        valid = false;
+      }
+      if (password.length < 6) {
+        showError('passwordError', 'Senha deve ter no mínimo 6 caracteres');
+        valid = false;
+      }
+      if (!valid) return;
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        await set(ref(database, 'users/' + user.uid), {
+          name,
+          email,
+          phone,
+          balance: 0,
+          createdAt: Date.now()
+        });
+        alert('Cadastro realizado com sucesso!');
+        window.location.href = 'login.html';
+      } catch (error) {
+        alert('Erro: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
